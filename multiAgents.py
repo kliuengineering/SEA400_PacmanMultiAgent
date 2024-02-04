@@ -42,11 +42,17 @@ class ReflexAgent(Agent):
         # Collect legal moves and successor states
         legalMoves = gameState.getLegalActions()
 
-        # Choose one of the best actions
+        # Choose one of the best actions from legal moves with game state being the scope
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
+
+        # search for the highest score
         bestScore = max(scores)
+
+        # consolidate the best legal moves available, transfer them to another list
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-        chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+
+        # choose the best legal moves in random
+        chosenIndex = random.choice(bestIndices)
 
         "Add more of your code here if you want to"
 
@@ -60,22 +66,110 @@ class ReflexAgent(Agent):
         GameStates (pacman.py) and returns a number, where higher numbers are better.
 
         The code below extracts some useful information from the state, like the
-        remaining food (newFood) and Pacman position after moving (newPos).
-        newScaredTimes holds the number of moves that each ghost will remain
+        remaining food (successor_food) and Pacman position after moving (successor_pacman_pos).
+        ghost_scared_time holds the number of moves that each ghost will remain
         scared because of Pacman having eaten a power pellet.
 
         Print out these variables to see what you're getting, then combine them
         to create a masterful evaluation function.
         """
-        # Useful information you can extract from a GameState (pacman.py)
-        successorGameState = currentGameState.generatePacmanSuccessor(action)
-        newPos = successorGameState.getPacmanPosition()
-        newFood = successorGameState.getFood()
-        newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        print("\n---------- iteration begins ----------\n") #debug
+        #========== Defining current game state parameters ============#
+
+        # obtain the current state of the food dots
+        current_food = currentGameState.getFood()
+        current_food_list = current_food.asList()
+
+
+        #========== Defining successor game state parameters ==========#
+
+        # generate the successor
+        successor_game_state = currentGameState.generatePacmanSuccessor(action)
+        # print("successor_game_state\n", successor_game_state) #debug
+
+        # pacman's position in the successor
+        successor_pacman_pos = successor_game_state.getPacmanPosition()
+        print("successor_pacman_pos", successor_pacman_pos) #debug
+
+        # food position in the successor
+        successor_food = successor_game_state.getFood()
+        # print("\nsuccessor_food\n", successor_food) #debug
+
+        # ghost state (object) in the successor
+        successor_ghost_state = successor_game_state.getGhostStates()
+        print("\nsuccessor_ghost_state\n", successor_ghost_state) #debug
+
+        # ghost scare-time counter
+        ghost_scared_time = [ghostState.scaredTimer for ghostState in successor_ghost_state]
+        print("\nghost_scared_time", ghost_scared_time) #debug
+
+        # convert the successor food data into a list
+        successor_food_list = successor_food.asList()
+        print("\nsuccessor_food_list -> ", successor_food_list) #debug
+
+        # ghost positions (coordinates) in the successor
+        successor_ghosts_positions = successor_game_state.getGhostPositions()
+        print("\nsuccessor_ghosts_positions -> ", successor_ghosts_positions) #debug
+
+        # determines which ghost is actually closer to pacman
+        dxy_pacman_to_ghost = 4096
+        for ghost_coordinates in successor_ghosts_positions:
+            dxy_pacman_to_ghost = min(manhattanDistance(ghost_coordinates, successor_pacman_pos), dxy_pacman_to_ghost)
+        print("\nclosest ghost is -> ", dxy_pacman_to_ghost) #debug
+
+        # search for the closest food
+        dxy_pacman_to_food = 4096
+        for food in successor_food_list:
+            dxy_pacman_to_food = min(manhattanDistance(food, successor_pacman_pos), dxy_pacman_to_food)
+        print("\ncloest food is -> ", dxy_pacman_to_food)
+
+
+        #==================== Defining the Evaluation Algorithm ====================#
+
+        score_food = len(successor_food_list)
+        score_pacman_to_ghost = 0
+
+        # gives a heavy reward when pacman eats food in the successor
+        if len(successor_food_list) < len(current_food_list):
+            score_food = 2**13
+
+        # gives a mild penalty when pacman does not eat food in the successor
+        else:
+            score_food = -2**10
+
+        # gives a heavy penalty when the ghost is too close to the pacman
+        if dxy_pacman_to_ghost < 2:
+            score_pacman_to_ghost = -2**16
+
+        # gives neutral when ghost is reasonably far
+        else:
+            score_pacman_to_ghost = 0
+
+        # if ghost is scared, then pacman is fearless!
+        if ghost_scared_time[0] > 0:
+            score_pacman_to_ghost = 0
+
+        # consolidate the parameters into more manageable variables
+        score_pacman_to_food = 1/dxy_pacman_to_food + score_food
+        score_successor_game_state = successor_game_state.getScore()
+
+        print("\nsuccessor game score -> ", successor_game_state.getScore()) #debug
+        print("\n---------- iteration ends ------------\n") #debug
+        return score_pacman_to_ghost + score_pacman_to_food - score_successor_game_state
+
+
+        #============================== debug mode begins ==============================#
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        # ============================== debug mode ends ================================#
+        # return successor_game_state.getScore()
 
 def scoreEvaluationFunction(currentGameState: GameState):
     """
