@@ -114,13 +114,13 @@ class ReflexAgent(Agent):
         print("\nsuccessor_ghosts_positions -> ", successor_ghosts_positions) #debug
 
         # determines which ghost is actually closer to pacman
-        dxy_pacman_to_ghost = 4096
+        dxy_pacman_to_ghost = 2**12
         for ghost_coordinates in successor_ghosts_positions:
             dxy_pacman_to_ghost = min(manhattanDistance(ghost_coordinates, successor_pacman_pos), dxy_pacman_to_ghost)
         print("\nclosest ghost is -> ", dxy_pacman_to_ghost) #debug
 
         # search for the closest food
-        dxy_pacman_to_food = 4096
+        dxy_pacman_to_food = 2**12
         for food in successor_food_list:
             dxy_pacman_to_food = min(manhattanDistance(food, successor_pacman_pos), dxy_pacman_to_food)
         print("\ncloest food is -> ", dxy_pacman_to_food)
