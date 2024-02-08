@@ -123,51 +123,87 @@ class ReflexAgent(Agent):
         dxy_pacman_to_food = 2**12
         for food in successor_food_list:
             dxy_pacman_to_food = min(manhattanDistance(food, successor_pacman_pos), dxy_pacman_to_food)
-        print("\ncloest food is -> ", dxy_pacman_to_food)
+        print("\ncloest food is -> ", dxy_pacman_to_food) #debug
 
 
-        #==================== Defining the Evaluation Algorithm ====================#
+        #==================== approach #1, works but not elegant... ====================#
 
-        score_food = len(successor_food_list)
-        score_pacman_to_ghost = 0
+        # score_food = len(successor_food_list)
+        # score_pacman_to_ghost = 0
+
+        # gives a heavy reward when pacman eats food in the successor
+        # if len(successor_food_list) < len(current_food_list):
+        #     score_food = 2**13
+        #
+        # # gives a mild penalty when pacman does not eat food in the successor
+        # else:
+        #     score_food = -2**10
+
+        # # gives a heavy penalty when the ghost is too close to the pacman
+        # if dxy_pacman_to_ghost < 2:
+        #     score_pacman_to_ghost = -2**16
+        #
+        # # gives neutral when ghost is reasonably far
+        # else:
+        #     score_pacman_to_ghost = 0
+        #
+        # # if ghost is scared, then pacman is fearless!
+        # if ghost_scared_time[0] > 0:
+        #     score_pacman_to_ghost = 0
+        #
+        # # consolidate the parameters into more manageable variables
+        # score_pacman_to_food = 1/dxy_pacman_to_food + score_food
+        # score_successor_game_state = successor_game_state.getScore()
+        #
+        # print("\nsuccessor game score -> ", successor_game_state.getScore()) #debug
+        # print("\n---------- iteration ends ------------\n") #debug
+        # return score_pacman_to_ghost + score_pacman_to_food - score_successor_game_state
+
+
+
+        #============================== approach #2, WIP. ==============================#
+
+        # accounts for time-outs using the game state's counter
+        score_successor_game_state = successor_game_state.getScore() / 2**len(successor_food_list)
 
         # gives a heavy reward when pacman eats food in the successor
         if len(successor_food_list) < len(current_food_list):
-            score_food = 2**13
+            score_food = 2**11
 
         # gives a mild penalty when pacman does not eat food in the successor
         else:
             score_food = -2**10
 
-        # gives a heavy penalty when the ghost is too close to the pacman
-        if dxy_pacman_to_ghost < 2:
-            score_pacman_to_ghost = -2**16
+        # Adjusting penalties and rewards based on field theory concepts
+        score_ghost_field = (sum
+        (
+            [-2 ** 16 / (manhattanDistance(ghost, successor_pacman_pos) ** 2)
+             for ghost in successor_ghosts_positions
+             if manhattanDistance(ghost, successor_pacman_pos) > 0]
+        ))
 
-        # gives neutral when ghost is reasonably far
-        else:
-            score_pacman_to_ghost = 0
+        # Direct relationship for food attraction (similar field approach but with less steep curve)
+        score_food_attraction = (sum
+        (
+            [2 ** 10 / (manhattanDistance(food, successor_pacman_pos) ** 1)
+             for food in successor_food_list if
+             manhattanDistance(food, successor_pacman_pos) > 0])
+        )
 
-        # if ghost is scared, then pacman is fearless!
-        if ghost_scared_time[0] > 0:
-            score_pacman_to_ghost = 0
+        # Modify to include scared ghost condition more explicitly
+        if any(scared > 0 for scared in ghost_scared_time):
+            score_ghost_field = 0  # No penalty if any ghost is scared, Pac-Man is fearless
 
-        # consolidate the parameters into more manageable variables
-        score_pacman_to_food = 1/dxy_pacman_to_food + score_food
-        score_successor_game_state = successor_game_state.getScore()
+        final_score = score_ghost_field + score_food_attraction + score_food - score_successor_game_state
 
-        print("\nsuccessor game score -> ", successor_game_state.getScore()) #debug
-        print("\n---------- iteration ends ------------\n") #debug
-        return score_pacman_to_ghost + score_pacman_to_food - score_successor_game_state
+        print("\nscore_ghost_field -> ", score_ghost_field)
+        print("score_food_attraction -> ", score_food_attraction)
+        print("score food dots -> ", score_food)
+        print("successor game score -> ", score_successor_game_state) #debug
+        print("final game score", final_score, "\n\n") #debug
 
+        return final_score
 
-        #============================== debug mode begins ==============================#
-        #
-        #
-        #
-        #
-        #
-        #
-        #
         # ============================== debug mode ends ================================#
         # return successor_game_state.getScore()
 
