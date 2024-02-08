@@ -168,11 +168,11 @@ class ReflexAgent(Agent):
 
         # gives a heavy reward when pacman eats food in the successor
         if len(successor_food_list) < len(current_food_list):
-            score_food = 2**11
+            score_food = 2**12
 
         # gives a mild penalty when pacman does not eat food in the successor
         else:
-            score_food = -2**10
+            score_food = -2**12
 
         # Adjusting penalties and rewards based on field theory concepts
         score_ghost_field = (sum
@@ -187,14 +187,14 @@ class ReflexAgent(Agent):
         (
             [2 ** 10 / (manhattanDistance(food, successor_pacman_pos) ** 1)
              for food in successor_food_list if
-             manhattanDistance(food, successor_pacman_pos) > 0])
-        )
+             manhattanDistance(food, successor_pacman_pos) > 0]
+        ))
 
         # Modify to include scared ghost condition more explicitly
         if any(scared > 0 for scared in ghost_scared_time):
             score_ghost_field = 0  # No penalty if any ghost is scared, Pac-Man is fearless
 
-        final_score = score_ghost_field + score_food_attraction + score_food - score_successor_game_state
+        final_score = score_ghost_field + score_food_attraction + score_food #- score_successor_game_state
 
         print("\nscore_ghost_field -> ", score_ghost_field)
         print("score_food_attraction -> ", score_food_attraction)
