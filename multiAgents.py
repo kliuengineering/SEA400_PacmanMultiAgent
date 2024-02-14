@@ -384,7 +384,104 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        """
+        Returns the minimax action using self.depth and self.evaluationFunction
+        function ALPHA_BETA_SEARCH(game, state) returns an action
+            player <-- game.TO_MOVE(state)
+            value, move <-- MAX_VALUE(game, state, -inf, inf)
+            return move
+
+        function MAX_VALUE(game, state, alpha, beta) returns a(utility, move) pair
+            if game.IS_TERMINAL(state) then return game.UTILITY(state, player), null
+            v <-- -inf
+            for each a in game.ACTIONS(state) do
+                v2, a2 <-- MIN_VALUE(game, game.RESULT(state, a), alpha, beta)
+                if v2 > v then
+                    v, move <-- v2, a
+                    alpha <-- MAX(alpha, v)
+                if v >= beta then return v, move
+            return v, move
+
+        function MIN_VALUE(game, state, alpha, beta) returns(utility, move) pair
+            if game.IS_TERMINAL(state) then return game.UTILITY(state, player), null
+            v <-- inf
+            for each a in game.ACTIONS(state) do
+                v2, a2 <-- MAX_VALUE(game, game.RESULT(state, a), alpha, beta)
+                if v2 > v then
+                    v, move <-- v2, a
+                    alpha <-- MIN(beta, v)
+                if v <= alpha then return v, move
+            return v, move
+        """
+
+        # Max value is a recursive maximizing player
+        def MAX_VALUE(game: GameState, depth, alpha, beta):
+            """
+            Evaluates the maximum score the maximizing player can achieve from the current game state.
+            Implements Alpha-Beta Pruning to optimize the search process.
+            """
+            # Get legal actions for Pac-Man (maximizing player).
+            actions = game.getLegalActions(0)
+
+            # Base case: No actions left, game won/lost, or maximum depth reached. defines
+            if len(actions) == 0 or game.isWin() or game.isLose() or depth == self.depth:
+                return (self.evaluationFunction(game), None)
+
+            v, move = float("-inf"), None # Initialize maximum score as negative infinity and no move.
+
+            # for each legal action we find the min for the minimizing player, do:
+            for action in actions:
+                # Evaluate the minimum score the opponent could force after this action.
+                v2, a2 = MIN_VALUE(game.generateSuccessor(0, action), 1, depth, alpha, beta)
+                # Update max score and corresponding action.
+                if v2 > v:
+                    v, move = v2, action    # Update the best score and move found so far for the maximizing player.
+                    alpha = max(alpha, v)   # Update alpha, the best score the maximizing player can guarantee on this path.
+                if v2 > beta:
+                    return v, move  # Prune this branch; the minimizing player will avoid it,
+                                    # ensuring a better score isn't achievable here.
+
+            return (v, move)
+        # Min value is a recursive minimizing player
+        def MIN_VALUE(game: GameState, ID, depth, alpha, beta):
+            """
+            Evaluates the minimum score the minimizing players (ghosts) can force from the current game state.
+            Implements Alpha-Beta Pruning to optimize the search process.
+            """
+            actions = game.getLegalActions(ID)# Get legal actions for the current ghost based on  "ID" and "game".
+
+            # Base case: Similar to MAX_VALUE, but for the minimizing player. defines
+            if len(actions) == 0 or game.isWin() or game.isLose() or depth == self.depth:
+                return (self.evaluationFunction(game), None)
+
+
+            # Initialize minimum score as infinity and no move.
+            v, move = float("inf"), None
+            # for each legal action we find the min for the minimizing player, do:
+            for action in actions:
+                # variables:
+                #           ID: keep track of what agent in case there are two minimizing agent
+                #           getNumAgents() gets the number of agents including pacman and ghosts
+                #           e.g: if getNumAgents() = 2 -> there are two agents: pacman and 1 ghost
+                #                if getNumAgents() = 3 -> there are three agents: pacman and 2 ghosts
+
+                # Determine next agent ID and whether to call MAX_VALUE or MIN_VALUE next.
+                # If next agent is Pac-Man, call MAX_VALUE.
+                if ID == gameState.getNumAgents() - 1:
+                    v2, a2 = MAX_VALUE(game.generateSuccessor(ID, action), depth + 1, alpha, beta)
+
+                # Otherwise, it's another ghost's turn, call MIN_VALUE.
+                else:
+                    v2, a2 = MIN_VALUE(game.generateSuccessor(ID, action), ID + 1,  depth, alpha, beta)
+                if v2 < v: # Update the lowest score and move found so far for the minimizing player.
+                    v, move = v2, action    # Update the lowest score and move found so far for the minimizing player.
+                    beta = min(beta, v)     # Update beta, the lowest score the minimizing player can force on this path.
+                if v2 < alpha:
+                    return v, action    # Prune this branch; the maximizing player will avoid it,
+                                        # ensuring a worse score isn't achievable here.
+            return (v, move)
+        return MAX_VALUE(gameState, 0, float("-inf"), float("inf"))[1]
+        #util.raiseNotDefined()
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
