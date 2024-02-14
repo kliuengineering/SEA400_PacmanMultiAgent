@@ -237,12 +237,13 @@ class MultiAgentSearchAgent(Agent):
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
 
+
 class MinimaxAgent(MultiAgentSearchAgent):
     """
     Your minimax agent (question 2)
     """
 
-    def getAction(self, gameState: GameState):
+    def getAction(self, gameState: GameState): # -> returns an action
         """
         Returns the minimax action from the current gameState using self.depth
         and self.evaluationFunction.
@@ -266,7 +267,112 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        # constants declaration
+        initial_depth = 0
+        return_action = 0
+        pacman = 0
+        ghost = 1
+
+        # Max <- infinity
+        eval_current = float("-inf")
+
+        # generates the initial frontier
+        frontier_list = gameState.getLegalActions(pacman)
+        print("\n+++++++++++++++ iteration begins +++++++++++++++\n")
+        print("current depth -> ", self.depth)
+        print("frontier set -> ", frontier_list, "\n")
+
+        # loops through all vertices inside the frontier
+        for frontier_state in frontier_list:
+            print("---------- frontier data begins ----------\n")
+            print("frontier vertex -> ", frontier_state)
+
+            # look into the successor maps of frontiers
+            successor_state = gameState.generateSuccessor(pacman, frontier_state)
+
+            print("successor map below: \n", successor_state)
+
+            # calls the min first
+            eval_successor = self.min_layer(successor_state, initial_depth, ghost)
+
+            print("current evaluation-> ", eval_current)
+            print("successor evaluation-> ", eval_successor, "\n")
+
+            # if the successor has a higher evaluation than the current
+            if eval_successor > eval_current:
+
+                # then return this successor's action
+                return_action = frontier_state
+
+                # now we can replace the current state with the best successor
+                eval_current = eval_successor
+            print("---------- frontier data ends ----------\n")
+
+        print("\n+++++++++++++++ iteration ends +++++++++++++++++\n")
+        return return_action
+
+
+    # max method
+    def max_layer(self, input_state, input_depth):
+
+        # agent indices, constant
+        pacman = 0
+        ghost = 1
+
+        # max determines the layer stack
+        input_depth += 1
+
+        # passes -infinity down to the leaf
+        return_value = float("-inf")
+
+        # checks win/lose/game stop conditions
+        if input_state.isWin() or input_state.isLose() or input_depth == self.depth:
+            return self.evaluationFunction(input_state)
+
+        # frontier list
+        frontier_list = input_state.getLegalActions(pacman)
+
+        # generates further frontiers from each vertex, DFS
+        for frontier_state in frontier_list:
+            successor = input_state.generateSuccessor(pacman, frontier_state)
+            return_value = max(return_value, self.min_layer(successor, input_depth, ghost))
+
+        # returns an eval
+        return return_value
+
+
+    # min method
+    def min_layer(self, input_state, input_depth, ghost_index):
+
+        # agent indices, constant
+        pacman = 0
+        ghost = 1
+
+        return_value = float("inf")
+
+        # checks win/lose
+        if input_state.isWin() or input_state.isLose():
+            return self.evaluationFunction(input_state)
+
+        # generates the frontier
+        frontier_list = input_state.getLegalActions(ghost_index)
+
+        # generates the successors
+        for frontier_state in frontier_list:
+            successor = input_state.generateSuccessor(ghost_index, frontier_state)
+
+            # checks the corner case -> whether the ghost is the latest ghost or not
+            if ghost_index == (input_state.getNumAgents() - 1):
+                return_value = min(return_value, self.max_layer(successor, input_depth))
+
+            # if not, then the ghost must be in the intermediate level
+            else:
+                return_value = min(return_value, self.min_layer(successor, input_depth, ghost_index + 1))
+
+        return return_value
+
+        #util.raiseNotDefined()
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
