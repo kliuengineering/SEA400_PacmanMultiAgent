@@ -194,13 +194,24 @@ class ReflexAgent(Agent):
         if any(scared > 0 for scared in ghost_scared_time):
             score_ghost_field = 0  # No penalty if any ghost is scared, Pac-Man is fearless
 
-        final_score = score_ghost_field + score_food_attraction + score_food #- score_successor_game_state
+        final_score = score_ghost_field + score_food_attraction + score_food - score_successor_game_state
 
+        '''
         print("\nscore_ghost_field -> ", score_ghost_field)
         print("score_food_attraction -> ", score_food_attraction)
         print("score food dots -> ", score_food)
         print("successor game score -> ", score_successor_game_state) #debug
         print("final game score", final_score, "\n\n") #debug
+        '''
+
+        pos_pacman = currentGameState.getPacmanPosition()
+        pos_food_array = currentGameState.getFood().asList()
+        pos_ghost_array = currentGameState.getGhostStates()
+        print("\ncurrent state data\n")
+        print(pos_pacman)
+        print(pos_food_array)
+        print(pos_ghost_array)
+        print("\ncurrent state data ends\n")
 
         return final_score
 
@@ -490,13 +501,77 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
     def getAction(self, gameState: GameState):
         """
-        Returns the expectimax action using self.depth and self.evaluationFunction
-
-        All ghosts should be modeled as choosing uniformly at random from their
-        legal moves.
+          Your expectimax agent (question 4)
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        def getAction(self, gameState: GameState):
+            """
+            Returns the expectimax action using self.depth and self.evaluationFunction
+
+            All ghosts should be modeled as choosing uniformly at random from their
+            legal moves.
+            """
+            "*** YOUR CODE HERE ***"
+
+            # This function determines the best move for Pac-Man (the maximizing agent) by examining all possible actions and their outcomes.
+            def MAX_VALUE(game, depth):
+                # Retrieves all legal actions for Pac-Man at the current game state.
+                actions = game.getLegalActions(0)
+
+                # Base case: If there are no more legal actions, the game is over, or the maximum search depth has been reached,
+                # it returns the evaluation score of the current game state and no action.
+                if len(actions) == 0 or game.isWin() or game.isLose() or depth == self.depth:
+                    return (self.evaluationFunction(game), None)
+
+                # for each legal action we find the min for the minimizing player, do:
+                # Initialize v to negative infinity to find the max value, and move to None.
+                v, move = float("-inf"), None
+                for a in actions:
+                    # For each possible action, it calculates the expected value (average outcome) considering the next agent's move.
+                    v2, a2 = EXP_VALUE(game.generateSuccessor(0, a), 1, depth)
+                    # Updates v and move if the current action leads to a higher value.
+                    if v2 > v:
+                        v, move = v2, a
+
+                # Returns the highest value and the corresponding action.
+                return (v, move)
+
+            # This function computes the expected value for a non-Pac-Man agent's (ghost's) move.
+            def EXP_VALUE(game, ID, depth):
+                # Retrieves all legal actions for the current agent (ghost) at the current game state.
+                actions = game.getLegalActions(ID)
+
+                # If there are no legal actions for the ghost, it means a terminal state or a win/lose state has been reached;
+                # returns the evaluation score of the current state and no action.
+                if len(actions) == 0:
+                    return (self.evaluationFunction(game), None)
+
+                # Initializes expected value v to 0 as it will accumulate the average value of all actions.
+                v, move = 0, None
+                # for each legal action we find the expected value, do:
+                for a in actions:
+                    # Decides whether to calculate the next move for Pac-Man or another ghost,
+                    # based on whether the current agent is the last one.
+
+                    if ID == gameState.getNumAgents() - 1:
+                        # If it's the last agent, calculates the MAX_VALUE for Pac-Man's next move,
+                        # indicating a return to the maximizing player and an increase in depth.
+                        val = MAX_VALUE(
+                            game.generateSuccessor(ID, a), depth + 1)[0]
+                    else:
+                        # If not the last agent, recursively calculates the expected value for the next agent (ghost).
+                        val = EXP_VALUE(game.generateSuccessor(
+                            ID, a), ID + 1, depth)[0]
+
+                    # Calculates the probability of each action by assuming each has equal chance and accumulates this into v.
+                    probability = val / len(actions)
+                    v += probability
+                # Returns the accumulated expected value and no specific move since this is an average of possible outcomes.
+                return (v, move)
+
+                # Initiates the Expectimax decision-making process for Pac-Man at the root of the game tree (depth 0).
+
+            return MAX_VALUE(gameState, 0)[1]
 
 def betterEvaluationFunction(currentGameState: GameState):
     """
@@ -504,9 +579,62 @@ def betterEvaluationFunction(currentGameState: GameState):
     evaluation function (question 5).
 
     DESCRIPTION: <write something here so we know what you did>
+
+    Drawing inspiration from physics,
+    we can try to use the concept of gravitational attraction and repulsion
+    to revise the evaluation function.
+    Pac-Man could be attracted to food and power capsules (positive force)
+    and repelled by ghosts (negative force),
+    so with the inverse square law of the distance,
+    we can mimick Newton's law of universal gravitation.
+    This approach would dynamically adjust the score based on the spatial configuration
+    of game variables, emphasizing strategic navigation to maximize attraction to
+    beneficial items while minimizing the repulsion caused by threats.
+
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    """
+    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
+    evaluation function (question 5).
+
+    DESCRIPTION: <write something here so we know what you did>
+    """
+
+    # given parameters
+    pos_pacman = currentGameState.getPacmanPosition()
+    pos_food_array = currentGameState.getFood().asList()
+    pos_ghost_array = currentGameState.getGhostStates()
+
+    print(pos_pacman)
+    print(pos_food_array)
+    print(pos_ghost_array)
+
+    # Gravitational attraction to food
+    foodForce = sum([1.0 / (manhattanDistance(pos_pacman, food) ** 2) for food in pos_food_array if manhattanDistance(pos_pacman, food) > 0])
+
+    # Repulsive force from ghosts, considering their scared state
+    ghostForces = 0
+    for ghost in pos_ghost_array:
+        distance = manhattanDistance(pos_pacman, ghost.getPosition())
+
+        # Ensure we don't divide by zero
+        if distance > 0:
+            if ghost.scaredTimer == 0:
+                ghostForces -= 2.0 / (distance ** 2)
+            else:
+                ghostForces += 2.0 / (distance ** 2)
+
+    # Incorporate scared ghost time as a positive factor
+    bonus_ScaredGhost = sum([ghost.scaredTimer for ghost in pos_ghost_array])
+
+    # Final evaluation score
+    return foodForce + ghostForces + bonus_ScaredGhost
+
+    #util.raiseNotDefined()
+    
+
 
 # Abbreviation
+
 better = betterEvaluationFunction
